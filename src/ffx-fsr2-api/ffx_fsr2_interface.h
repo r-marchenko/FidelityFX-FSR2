@@ -21,6 +21,10 @@
 
 #pragma once
 
+#ifdef FFX_GCC
+	#include <stddef.h>
+#endif
+
 #include "ffx_assert.h"
 #include "ffx_types.h"
 #include "ffx_error.h"

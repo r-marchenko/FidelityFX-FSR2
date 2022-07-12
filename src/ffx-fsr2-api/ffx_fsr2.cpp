@@ -37,6 +37,19 @@ static const uint32_t FSR2_MAX_QUEUED_FRAMES = 16;
 
 #include "ffx_fsr2_private.h"
 
+#ifdef FFX_GCC
+
+#define _countof(a) (sizeof(a)/sizeof(*(a)))
+
+template <size_t size>
+int strcpy_s(char (&dest)[size], const char *src)
+{
+	strncpy(dest, src, size);
+	return 0;
+}
+
+#endif
+
 // lists to map shader resource bindpoint name to resource identifier
 typedef struct ResourceBinding
 {

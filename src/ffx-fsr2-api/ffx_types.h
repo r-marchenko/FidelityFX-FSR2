@@ -25,7 +25,7 @@
 
 #if defined (FFX_GCC)
 /// FidelityFX exported functions
-#define FFX_API
+#define FFX_API __attribute__((visibility("default")))
 #else
 /// FidelityFX exported functions
 #define FFX_API __declspec(dllexport)

@@ -27,6 +27,19 @@
 #include <math.h>
 #include <stdlib.h>
 
+#ifdef FFX_GCC
+
+#define _countof(a) (sizeof(a)/sizeof(*(a)))
+
+template <size_t size>
+int strcpy_s(char (&dest)[size], const char *src)
+{
+	strncpy(dest, src, size);
+	return 0;
+}
+
+#endif
+
 // prototypes for functions in the interface
 FfxErrorCode GetDeviceCapabilitiesVK(FfxFsr2Interface* backendInterface, FfxDeviceCapabilities* deviceCapabilities, FfxDevice device);
 FfxErrorCode CreateDeviceVK(FfxFsr2Interface* backendInterface, FfxDevice device);

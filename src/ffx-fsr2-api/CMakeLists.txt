@@ -23,6 +23,10 @@ cmake_minimum_required(VERSION 3.15)
 #set(CMAKE_CONFIGURATION_TYPES Debug Release)
 set(CMAKE_DEBUG_POSTFIX d)
 
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+	find_program(wine_FOUND wine REQUIRED)
+endif()
+
 option (FFX_FSR2_API_DX12 "Build FSR 2.0 DX12 backend" ON)
 option (FFX_FSR2_API_VK "Build FSR 2.0 Vulkan backend" ON)
 
@@ -43,15 +47,27 @@ if(CMAKE_GENERATOR_PLATFORM STREQUAL "x64" OR CMAKE_EXE_LINKER_FLAGS STREQUAL "/
 elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32" OR CMAKE_EXE_LINKER_FLAGS STREQUAL "/machine:X86")
     set(FSR2_PLATFORM_NAME x86)
 else()
-    message(FATAL_ERROR "Unsupported target platform - only supporting x64 and Win32 currently")
+    set(FSR2_PLATFORM_NAME x86)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(FSR2_PLATFORM_NAME x64)
+    endif()
 endif()
 
-# Embed PDBs in the debug versions of the libs
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
+if(NOT UNIX)
+    # Embed PDBs in the debug versions of the libs
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
+elseif(UNIX)
+    add_definitions(-DFFX_GCC)
+endif()
+
 
 # Write both debug and release versions of the static libs to the /lib folder as they are uniquely named
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   ${CMAKE_HOME_DIRECTORY}/bin/ffx_fsr2_api/)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_HOME_DIRECTORY}/bin/ffx_fsr2_api/)
+if(UNIX)
+    # Write the static or shared libs to the /bin folder as they are uniquely named
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
+endif()
 
 add_compile_definitions(_UNICODE)
 add_compile_definitions(UNICODE)

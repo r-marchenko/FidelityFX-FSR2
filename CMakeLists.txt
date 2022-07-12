@@ -22,6 +22,7 @@
 cmake_minimum_required(VERSION 3.12.1)
 
 option (GFX_API_DX12 "Build with DX12" ON)
+option (GFX_FSR2_LIB_ONLY "Build FSR2 library only " OFF)
 
 if(NOT DEFINED GFX_API)
     project (FSR2_Sample)
@@ -55,8 +56,18 @@ else()
     endif()
 endif()
 
+if(UNIX)
+    #Unix port doesn't supports building of the app.  
+    set(GFX_FSR2_LIB_ONLY ON)
+
+    #Unix port supports only Vulkan backend 
+    set(GFX_API_DX12 OFF)
+    set(GFX_API_VK ON)
+    add_definitions(-DFFX_GCC)
+endif() #UNIX
+
 # Check MSVC toolset version, Visual Studio 2019 required
-if(MSVC_TOOLSET_VERSION VERSION_LESS 142)
+if(DEFINED MSVC_TOOLSET_VERSION AND MSVC_TOOLSET_VERSION VERSION_LESS 142)
     message(FATAL_ERROR "Cannot find MSVC toolset version 142 or greater. Please make sure Visual Studio 2019 or newer installed")
 endif()
 
@@ -68,7 +79,10 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_HOME_DIRECTORY}/bin )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
-add_compile_options(/MP)
+if(DEFINED MSVC_TOOLSET_VERSION)
+    add_compile_options(/MP)
+endif()
+
 add_compile_definitions($<$<CONFIG:RelWithDebInfo>:USE_PIX>)
 
 # override build options in ffx-fsr2-api cmake
@@ -76,15 +90,20 @@ option (FFX_FSR2_API_DX12 "Build FSR 2.0 DX12 backend" ${GFX_API_DX12})
 option (FFX_FSR2_API_VK "Build FSR 2.0 Vulkan backend" ${GFX_API_VK})
 
 # reference libs used by both backends
-add_subdirectory(libs/cauldron)
-add_subdirectory(src/Common)
+if(NOT GFX_FSR2_LIB_ONLY)
+    add_subdirectory(libs/cauldron)
+    add_subdirectory(src/Common)
+endif()
+
 add_subdirectory(src/ffx-fsr2-api)
 
-if(GFX_API_VK)
-    find_package(Vulkan REQUIRED)
-    add_subdirectory(src/VK)
-endif()
-if(GFX_API_DX12)
-    add_subdirectory(src/DX12)
+if(NOT GFX_FSR2_LIB_ONLY)
+    if(GFX_API_VK)
+        find_package(Vulkan REQUIRED)
+        add_subdirectory(src/VK)
+    endif()
+    if(GFX_API_DX12)
+        add_subdirectory(src/DX12)
+    endif()
 endif()
 

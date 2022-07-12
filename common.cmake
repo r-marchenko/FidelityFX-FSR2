@@ -2,7 +2,9 @@
 # enables multithreading compilation
 #
 
-add_compile_options(/MP)
+if(DEFINED MSVC_TOOLSET_VERSION)
+	add_compile_options(/MP)
+endif()
 
 #
 # includes cauldron's helper cmakes

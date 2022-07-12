@@ -23,6 +23,10 @@ if(NOT ${FFX_FSR2_API_VK})
     return()
 endif()
 
+if(UNIX)
+    add_definitions(-DFFX_GCC)
+endif()
+
 set(FFX_SC_VK_BASE_ARGS
     -compiler=glslang -e main --target-env vulkan1.1 -S comp -Os -DFFX_GLSL=1)
 
@@ -52,7 +56,14 @@ else()
     add_library(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} STATIC ${VK})
 endif()
 
-find_package(Vulkan REQUIRED)
+if(CMAKE_CROSSCOMPILING)
+    find_package(Vulkan)
+    if(NOT Vulkan_INCLUDE_DIR)
+        message(SEND_ERROR "Vulkan headers are not found!")
+    endif()
+else()
+    find_package(Vulkan REQUIRED)
+endif()
 
 target_include_directories(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/../shaders/vk)
 target_include_directories(ffx_fsr2_api_vk_${FSR2_PLATFORM_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
@@ -74,7 +85,7 @@ foreach(PASS_SHADER ${PASS_SHADERS})
     get_filename_component(PASS_SHADER_FILENAME ${PASS_SHADER} NAME_WE)
     get_filename_component(PASS_SHADER_TARGET ${PASS_SHADER} NAME_WLE)
     set(PERMUTATION_HEADER ${PASS_SHADER_OUTPUT_PATH}/${PASS_SHADER_TARGET}_permutations.h)
-
+    
     # combine base and permutation args
     if (${PASS_SHADER_FILENAME} STREQUAL "ffx_fsr2_compute_luminance_pyramid_pass")
         # skip 16-bit permutations for the compute luminance pyramid pass
@@ -83,10 +94,20 @@ foreach(PASS_SHADER ${PASS_SHADERS})
         set(FFX_SC_ARGS ${FFX_SC_BASE_ARGS} ${FFX_SC_VK_BASE_ARGS} ${FFX_SC_PERMUTATION_ARGS} -DFFX_HALF={0,1})
     endif()
 
+    set(CMD_PASS_SHADERS_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+    set(CMD_PASS_SHADER_OUTPUT_PATH ${PASS_SHADER_OUTPUT_PATH})
+    set(CMD_PASS_SHADER ${PASS_SHADER})
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    # FFX_SC_EXECUTABLE doesn't understand an absolute path in Linux stile
+    file(RELATIVE_PATH CMD_PASS_SHADERS_INCLUDE    ${CMAKE_BINARY_DIR} ${CMD_PASS_SHADERS_INCLUDE})
+    file(RELATIVE_PATH CMD_PASS_SHADER_OUTPUT_PATH ${CMAKE_BINARY_DIR} ${PASS_SHADER_OUTPUT_PATH})
+    file(RELATIVE_PATH CMD_PASS_SHADER             ${CMAKE_BINARY_DIR} ${PASS_SHADER})
+endif()
+
     if(USE_DEPFILE)
         add_custom_command(
             OUTPUT ${PERMUTATION_HEADER}
-            COMMAND ${FFX_SC_EXECUTABLE} ${FFX_SC_ARGS} -name=${PASS_SHADER_FILENAME} -I${CMAKE_CURRENT_SOURCE_DIR}/shaders -output=${PASS_SHADER_OUTPUT_PATH} ${PASS_SHADER}
+            COMMAND ${FFX_SC_EXECUTABLE} ${FFX_SC_ARGS} -name=${PASS_SHADER_FILENAME} -I${CMD_PASS_SHADERS_INCLUDE} -output=${CMD_PASS_SHADER_OUTPUT_PATH} ${CMD_PASS_SHADER}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             DEPENDS ${PASS_SHADER}
             DEPFILE ${PERMUTATION_HEADER}.d
@@ -95,7 +116,7 @@ foreach(PASS_SHADER ${PASS_SHADERS})
     else()
         add_custom_command(
             OUTPUT ${PERMUTATION_HEADER}
-            COMMAND ${FFX_SC_EXECUTABLE} ${FFX_SC_ARGS} -name=${PASS_SHADER_FILENAME} -I${CMAKE_CURRENT_SOURCE_DIR}/shaders -output=${PASS_SHADER_OUTPUT_PATH} ${PASS_SHADER}
+            COMMAND ${FFX_SC_EXECUTABLE} ${FFX_SC_ARGS} -name=${PASS_SHADER_FILENAME} -I${CMD_PASS_SHADERS_INCLUDE} -output=${CMD_PASS_SHADER_OUTPUT_PATH} ${CMD_PASS_SHADER}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             DEPENDS ${PASS_SHADER}
         )
