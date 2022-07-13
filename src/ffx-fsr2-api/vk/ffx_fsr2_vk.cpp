@@ -144,15 +144,15 @@ typedef struct BackendContext_VK {
     Resource                resources[FSR2_MAX_RESOURCE_COUNT] = {};
     FfxResourceInternal     stagingResources[FSR2_MAX_STAGING_RESOURCE_COUNT] = {};
 
-    VkDescriptorPool        descPool = nullptr;
-    VkDescriptorSetLayout   samplerDescriptorSetLayout = nullptr;
-    VkDescriptorSet         samplerDescriptorSet = nullptr;
+    VkDescriptorPool        descPool = VK_NULL_HANDLE;
+    VkDescriptorSetLayout   samplerDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet         samplerDescriptorSet = VK_NULL_HANDLE;
     uint32_t                allocatedPipelineLayoutCount = 0;
     PipelineLayout          pipelineLayouts[FFX_FSR2_PASS_COUNT] = {};
-    VkSampler               pointSampler = nullptr;
-    VkSampler               linearSampler = nullptr;
+    VkSampler               pointSampler = VK_NULL_HANDLE;
+    VkSampler               linearSampler = VK_NULL_HANDLE;
     
-    VkDeviceMemory          uboMemory = nullptr;
+    VkDeviceMemory          uboMemory = VK_NULL_HANDLE;
     VkMemoryPropertyFlags   uboMemoryProperties = 0;
     UniformBuffer           uboRingBuffer[FSR2_UBO_RING_BUFFER_SIZE] = {};
     uint32_t                uboRingBufferIndex = 0;
@@ -588,7 +588,7 @@ VkImage ffxGetVkImage(FfxFsr2Context* context, uint32_t resId)
 
     int32_t internalIndex = contextPrivate->uavResources[resId].internalIndex;
 
-    return (internalIndex == -1) ? nullptr : backendContext->resources[internalIndex].imageResource;
+    return (internalIndex == -1) ? VK_NULL_HANDLE : backendContext->resources[internalIndex].imageResource;
 }
 
 VkImageView ffxGetVkImageView(FfxFsr2Context* context, uint32_t resId)
@@ -953,30 +953,30 @@ FfxErrorCode DestroyDeviceVK(FfxFsr2Interface* backendInterface, FfxDevice devic
 
         backendContext->vkFunctionTable.vkDestroyBuffer(backendContext->device, ubo.bufferResource, nullptr);
 
-        ubo.bufferResource = nullptr;
+        ubo.bufferResource = VK_NULL_HANDLE;
         ubo.pData = nullptr;
     }
 
     backendContext->vkFunctionTable.vkUnmapMemory(backendContext->device, backendContext->uboMemory);
     backendContext->vkFunctionTable.vkFreeMemory(backendContext->device, backendContext->uboMemory, nullptr);
-    backendContext->uboMemory = nullptr;
+    backendContext->uboMemory = VK_NULL_HANDLE;
 
     backendContext->vkFunctionTable.vkDestroyDescriptorPool(backendContext->device, backendContext->descPool, nullptr);
-    backendContext->descPool = nullptr;
+    backendContext->descPool = VK_NULL_HANDLE;
 
     backendContext->vkFunctionTable.vkDestroyDescriptorSetLayout(backendContext->device, backendContext->samplerDescriptorSetLayout, nullptr);
-    backendContext->samplerDescriptorSet = nullptr;
-    backendContext->samplerDescriptorSetLayout = nullptr;
+    backendContext->samplerDescriptorSet = VK_NULL_HANDLE;
+    backendContext->samplerDescriptorSetLayout = VK_NULL_HANDLE;
 
     backendContext->vkFunctionTable.vkDestroySampler(backendContext->device, backendContext->pointSampler, nullptr);
     backendContext->vkFunctionTable.vkDestroySampler(backendContext->device, backendContext->linearSampler, nullptr);
-    backendContext->pointSampler = nullptr;
-    backendContext->linearSampler = nullptr;
+    backendContext->pointSampler = VK_NULL_HANDLE;
+    backendContext->linearSampler = VK_NULL_HANDLE;
 
     VkDevice vkDevice = reinterpret_cast<VkDevice>(device);
-    if (vkDevice != nullptr) {
+    if (vkDevice != VK_NULL_HANDLE) {
 
-        backendContext->device = nullptr;
+        backendContext->device = VK_NULL_HANDLE;
     }
 
     return FFX_OK;
@@ -1386,7 +1386,7 @@ FfxErrorCode CreatePipelineVK(FfxFsr2Interface* backendInterface, FfxFsr2Pass pa
     shaderModuleCreateInfo.pCode = (uint32_t*)shaderBlob.data;
     shaderModuleCreateInfo.codeSize = shaderBlob.size;
 
-    VkShaderModule shaderModule = nullptr;
+    VkShaderModule shaderModule = VK_NULL_HANDLE;
 
     if (backendContext->vkFunctionTable.vkCreateShaderModule(backendContext->device, &shaderModuleCreateInfo, nullptr, &shaderModule) != VK_SUCCESS) {
         return FFX_ERROR_BACKEND_API_ERROR;
@@ -1416,8 +1416,8 @@ FfxErrorCode CreatePipelineVK(FfxFsr2Interface* backendInterface, FfxFsr2Pass pa
     pipelineCreateInfo.stage = shaderStageCreateInfo;
     pipelineCreateInfo.layout = pipelineLayout.pipelineLayout;
 
-    VkPipeline computePipeline = nullptr;
-    if (backendContext->vkFunctionTable.vkCreateComputePipelines(backendContext->device, nullptr, 1, &pipelineCreateInfo, nullptr, &computePipeline) != VK_SUCCESS) {
+    VkPipeline computePipeline = VK_NULL_HANDLE;
+    if (backendContext->vkFunctionTable.vkCreateComputePipelines(backendContext->device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &computePipeline) != VK_SUCCESS) {
         return FFX_ERROR_BACKEND_API_ERROR;
     }
 
@@ -1837,7 +1837,7 @@ FfxErrorCode DestroyResourceVK(FfxFsr2Interface* backendInterface, FfxResourceIn
             if (res.bufferResource)
             {
                 backendContext->vkFunctionTable.vkDestroyBuffer(backendContext->device, res.bufferResource, NULL);
-                res.bufferResource = nullptr;
+                res.bufferResource = VK_NULL_HANDLE;
             }
         }
         else
@@ -1845,7 +1845,7 @@ FfxErrorCode DestroyResourceVK(FfxFsr2Interface* backendInterface, FfxResourceIn
             if (res.allMipsImageView)
             {
                 backendContext->vkFunctionTable.vkDestroyImageView(backendContext->device, res.allMipsImageView, NULL);
-                res.allMipsImageView = nullptr;
+                res.allMipsImageView = VK_NULL_HANDLE;
             }
 
             for (uint32_t i = 0; i < res.resourceDescription.mipCount; i++)
@@ -1853,21 +1853,21 @@ FfxErrorCode DestroyResourceVK(FfxFsr2Interface* backendInterface, FfxResourceIn
                 if (res.singleMipImageViews[i])
                 {
                     backendContext->vkFunctionTable.vkDestroyImageView(backendContext->device, res.singleMipImageViews[i], NULL);
-                    res.singleMipImageViews[i] = nullptr;
+                    res.singleMipImageViews[i] = VK_NULL_HANDLE;
                 }
             }
 
             if (res.imageResource)
             {
                 backendContext->vkFunctionTable.vkDestroyImage(backendContext->device, res.imageResource, NULL);
-                res.imageResource = nullptr;
+                res.imageResource = VK_NULL_HANDLE;
             }
         }
 
         if (res.deviceMemory)
         {
             backendContext->vkFunctionTable.vkFreeMemory(backendContext->device, res.deviceMemory, NULL);
-            res.deviceMemory = nullptr;
+            res.deviceMemory = VK_NULL_HANDLE;
         }
     }
 
@@ -1893,20 +1893,20 @@ FfxErrorCode DestroyPipelineVK(FfxFsr2Interface* backendInterface, FfxPipelineSt
     if (pipelineLayout) {
         // destroy descriptor sets 
         for (uint32_t i = 0; i < FSR2_MAX_QUEUED_FRAMES; i++)
-            pipelineLayout->descriptorSets[i] = nullptr;
+            pipelineLayout->descriptorSets[i] = VK_NULL_HANDLE;
 
         // destroy descriptor set layout
         if (pipelineLayout->descriptorSetLayout)
         {
             backendContext->vkFunctionTable.vkDestroyDescriptorSetLayout(backendContext->device, pipelineLayout->descriptorSetLayout, nullptr);
-            pipelineLayout->descriptorSetLayout = nullptr;
+            pipelineLayout->descriptorSetLayout = VK_NULL_HANDLE;
         }
 
         // destroy pipeline layout
         if (pipelineLayout->pipelineLayout)
         {
             backendContext->vkFunctionTable.vkDestroyPipelineLayout(backendContext->device, pipelineLayout->pipelineLayout, nullptr);
-            pipelineLayout->pipelineLayout = nullptr;
+            pipelineLayout->pipelineLayout = VK_NULL_HANDLE;
         }
     }
 
